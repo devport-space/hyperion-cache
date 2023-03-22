@@ -81,4 +81,20 @@ public class RedisCacheTest {
 
         Assert.assertEquals("Wertik1206", first);
     }
+
+    @Test
+    public void leaderboardMultipleEntries() {
+        UserStore store = new UserStore(connector);
+
+        Leaderboard<User> leaderboard = store.leaderboard("users-money-multiple", User::money);
+
+        store.entry("Wertik1206").money().set(100D);
+        store.entry("MoonSoD").money().set(200D);
+
+        leaderboard.load("Wertik1206", "MoonSoD");
+
+        String first = leaderboard.at(0);
+
+        Assert.assertEquals("MoonSoD", first);
+    }
 }

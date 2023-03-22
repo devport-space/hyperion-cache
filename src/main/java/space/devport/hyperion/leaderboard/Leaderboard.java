@@ -6,8 +6,8 @@ import space.devport.hyperion.entry.Entry;
 import space.devport.hyperion.entry.field.DoubleField;
 import space.devport.hyperion.store.Store;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Function;
 
 public class Leaderboard<E extends Entry> {
@@ -20,13 +20,16 @@ public class Leaderboard<E extends Entry> {
 
     private final String name;
 
+    private final boolean descend;
+
     // todo: create an initializer in store
 
-    public Leaderboard(RedisConnector connector, String name, Store<E> store, Function<E, DoubleField> valueLoader) {
+    public Leaderboard(RedisConnector connector, String name, Store<E> store, Function<E, DoubleField> valueLoader, boolean descend) {
         this.connector = connector;
         this.valueLoader = valueLoader;
         this.store = store;
         this.name = name;
+        this.descend = descend;
     }
 
     public void load(String identifier) {
@@ -42,7 +45,13 @@ public class Leaderboard<E extends Entry> {
 
     // a way to load in a bunch of data
 
-    public void load(Set<String> identifiers) {
+    public void load(Collection<String> identifiers) {
+        for (String id : identifiers) {
+            load(id);
+        }
+    }
+
+    public void load(String... identifiers) {
         for (String id : identifiers) {
             load(id);
         }
@@ -55,7 +64,12 @@ public class Leaderboard<E extends Entry> {
 
     public String at(int position) {
         List<String> zrange = this.connector.withConnection((jedis) -> {
-            return jedis.zrange(getKey(), position, position);
+            // do the range in reverse so we get the one with the highest amount on top?
+            if (this.descend) {
+                return jedis.zrevrange(getKey(), position, position);
+            } else {
+                return jedis.zrange(getKey(), position, position);
+            }
         });
 
         return zrange.isEmpty() ? null : zrange.get(0);

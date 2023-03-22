@@ -41,8 +41,13 @@ public abstract class Store<E extends Entry> {
         return e;
     }
 
+    public Leaderboard<E> leaderboard(String name, Function<E, DoubleField> valueLoader, boolean descend) {
+        return new Leaderboard<>(this.connector, name, this, valueLoader, descend);
+    }
+
     public Leaderboard<E> leaderboard(String name, Function<E, DoubleField> valueLoader) {
-        return new Leaderboard<>(this.connector, name, this, valueLoader);
+        // descend order by default
+        return new Leaderboard<>(this.connector, name, this, valueLoader, true);
     }
 
     public Key getKey() {
