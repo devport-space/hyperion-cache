@@ -13,7 +13,7 @@ public class RedisConnector {
 
     private final JedisPool jedisPool = new JedisPool();
 
-    public RedisConnector() {
+    private RedisConnector() {
         //
     }
 

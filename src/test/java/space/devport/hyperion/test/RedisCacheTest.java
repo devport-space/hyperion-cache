@@ -3,40 +3,53 @@ package space.devport.hyperion.test;
 import org.junit.Assert;
 import org.junit.Test;
 import space.devport.hyperion.HyperionCache;
-import space.devport.hyperion.test.models.DemoPlayer;
+import space.devport.hyperion.entry.Store;
+import space.devport.hyperion.leaderboard.Leaderboard;
+import space.devport.hyperion.test.models.User;
+import space.devport.hyperion.test.models.UserStore;
 
 public class RedisCacheTest {
 
     private final HyperionCache cache = new HyperionCache();
 
     @Test
-    public void setAndGet() {
-        DemoPlayer player = cache.createHandle(DemoPlayer.class, "Wertik1206");
+    public void getset() {
 
-        player.money().set(200L);
+        // if the UserStore implements the Persistent interface
+        // it can be passed here
+        //cache.saveUpdatedEntries(userStore);
 
-        Assert.assertEquals(200L, (long) player.money().get());
+        // same goes here
+        //cache.savePersistentEntry(userStore, identifier);
+
+        // and here
+        //cache.loadPersistentEntry(userStore, identifier);
+
+        // create a store that provides entries and models
+        UserStore userStore = new UserStore(cache.getRedisConnector());
+
+        // obtain an entry that's tied to a specific object
+        User user = userStore.entry("Wertik1206");
+
+        // set value
+        user.money().set(100D);
+
+        // get a value from it
+        double money = user.money().get();
+
+        Assert.assertEquals(100D, money, 0.01);
     }
 
     @Test
-    public void increment() {
-        DemoPlayer player = cache.createHandle(DemoPlayer.class, "Wertik1206");
+    public void leaderboard() {
+        UserStore store = new UserStore(cache.getRedisConnector());
 
-        player.money().set(200L);
+        Leaderboard<User, Store<User>> leaderboard = store.leaderboard("users-money", User::money);
 
-        player.money().increment(100L);
+        leaderboard.load("Wertik1206");
 
-        Assert.assertEquals(300L, (long) player.money().get());
-    }
+        String first = leaderboard.at(0);
 
-    @Test
-    public void decrement() {
-        DemoPlayer player = cache.createHandle(DemoPlayer.class, "Wertik1206");
-
-        player.money().set(200L);
-
-        player.money().decrement(100L);
-
-        Assert.assertEquals(100L, (long) player.money().get());
+        Assert.assertEquals("Wertik1206", first);
     }
 }

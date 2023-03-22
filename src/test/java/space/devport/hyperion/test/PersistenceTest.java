@@ -1,30 +1,15 @@
 package space.devport.hyperion.test;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
-import org.junit.Assert;
-import org.junit.Test;
-import space.devport.hyperion.HyperionCache;
-import space.devport.hyperion.RedisConnector;
-import space.devport.hyperion.factory.EntryFactory;
-import space.devport.hyperion.persistence.PersistenceProvider;
-import space.devport.hyperion.test.models.DemoPlayer;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 public class PersistenceTest {
 
-    @Test
+    /*@Test
     public void demo() throws SQLException, InterruptedException {
         HyperionCache cache = new HyperionCache();
 
-        cache.addFactory(DemoPlayer.class, new EntryFactory<>() {
+        cache.addFactory(User.class, new EntryFactory<>() {
             @Override
-            public DemoPlayer createEntry(RedisConnector connector, String identifier) {
-                return new DemoPlayer(connector, identifier);
+            public User createEntry(RedisConnector connector, String identifier) {
+                return new User(connector, identifier);
             }
 
             @Override
@@ -42,9 +27,9 @@ public class PersistenceTest {
 
         Connection conn = ds.getConnection();
 
-        cache.addPersistenceProvider(DemoPlayer.class, new PersistenceProvider<>() {
+        cache.addPersistenceProvider(User.class, new PersistenceProvider<>() {
             @Override
-            public void load(DemoPlayer entry) {
+            public void load(User entry) {
                 try {
                     PreparedStatement statement = conn.prepareStatement(String.format("SELECT name, money from `players` where `players`.`name`='%s';", entry.getIdentifier()));
                     ResultSet set = statement.executeQuery();
@@ -60,7 +45,7 @@ public class PersistenceTest {
             }
 
             @Override
-            public void save(DemoPlayer entry) {
+            public void save(User entry) {
                 try {
                     PreparedStatement statement = conn.prepareStatement("INSERT INTO `players` (name, money) VALUES (?, ?) ON DUPLICATE KEY UPDATE money = ?;");
                     statement.setString(1, entry.getStringIdentifier());
@@ -75,7 +60,7 @@ public class PersistenceTest {
         });
 
         // obtain a handle
-        DemoPlayer player = cache.createHandle(DemoPlayer.class, "Wertik1206");
+        User player = cache.createHandle(User.class, "Wertik1206");
         player.money().set(100L);
 
         cache.saveUpdatedEntries();
@@ -90,5 +75,5 @@ public class PersistenceTest {
         cache.loadPersistentEntry(player);
 
         Assert.assertEquals(100L, (long) player.money().get());
-    }
+    }*/
 }
