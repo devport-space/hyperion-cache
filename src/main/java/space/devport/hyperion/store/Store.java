@@ -1,6 +1,7 @@
-package space.devport.hyperion.entry;
+package space.devport.hyperion.store;
 
 import space.devport.hyperion.HyperionCache;
+import space.devport.hyperion.entry.Entry;
 import space.devport.hyperion.entry.field.DoubleField;
 import space.devport.hyperion.leaderboard.Leaderboard;
 
@@ -34,7 +35,7 @@ public abstract class Store<E extends Entry> {
         return e;
     }
 
-    public Leaderboard<E, Store<E>> leaderboard(String name, Function<E, DoubleField> valueLoader) {
+    public Leaderboard<E> leaderboard(String name, Function<E, DoubleField> valueLoader) {
         return new Leaderboard<>(this.cache.getRedisConnector(), name, this, valueLoader);
     }
 }

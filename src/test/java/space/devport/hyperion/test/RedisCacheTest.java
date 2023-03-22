@@ -3,7 +3,6 @@ package space.devport.hyperion.test;
 import org.junit.Assert;
 import org.junit.Test;
 import space.devport.hyperion.HyperionCache;
-import space.devport.hyperion.entry.Store;
 import space.devport.hyperion.leaderboard.Leaderboard;
 import space.devport.hyperion.test.models.User;
 import space.devport.hyperion.test.models.UserStore;
@@ -33,7 +32,7 @@ public class RedisCacheTest {
     public void leaderboard() {
         UserStore store = new UserStore(cache);
 
-        Leaderboard<User, Store<User>> leaderboard = store.leaderboard("users-money", User::money);
+        Leaderboard<User> leaderboard = store.leaderboard("users-money", User::money);
 
         leaderboard.load("Wertik1206");
 

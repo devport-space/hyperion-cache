@@ -1,7 +1,7 @@
 package space.devport.hyperion.test.models;
 
 import space.devport.hyperion.HyperionCache;
-import space.devport.hyperion.entry.Store;
+import space.devport.hyperion.store.Store;
 
 public class UserStore extends Store<User> {
     public UserStore(HyperionCache cache) {

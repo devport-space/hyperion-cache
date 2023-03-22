@@ -3,18 +3,18 @@ package space.devport.hyperion.leaderboard;
 import space.devport.hyperion.HyperionCache;
 import space.devport.hyperion.RedisConnector;
 import space.devport.hyperion.entry.Entry;
-import space.devport.hyperion.entry.Store;
 import space.devport.hyperion.entry.field.DoubleField;
+import space.devport.hyperion.store.Store;
 
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-public class Leaderboard<E extends Entry, S extends Store<E>> {
+public class Leaderboard<E extends Entry> {
 
     private final RedisConnector connector;
 
-    private final S store;
+    private final Store<E> store;
 
     private final Function<E, DoubleField> valueLoader;
 
@@ -22,7 +22,7 @@ public class Leaderboard<E extends Entry, S extends Store<E>> {
 
     // todo: create an initializer in store
 
-    public Leaderboard(RedisConnector connector, String name, S store, Function<E, DoubleField> valueLoader) {
+    public Leaderboard(RedisConnector connector, String name, Store<E> store, Function<E, DoubleField> valueLoader) {
         this.connector = connector;
         this.valueLoader = valueLoader;
         this.store = store;
