@@ -1,10 +1,11 @@
-package space.devport.hyperion.test.demo.models;
+package space.devport.hyperion.test.models;
 
 import space.devport.hyperion.RedisConnector;
 import space.devport.hyperion.entry.CacheHandle;
 import space.devport.hyperion.entry.field.LongField;
 import space.devport.hyperion.entry.field.StringField;
 
+// Cache handle with a string key
 public class DemoPlayer extends CacheHandle<String> {
 
     private final LongField money = longField("money");

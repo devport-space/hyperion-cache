@@ -6,6 +6,9 @@ import redis.clients.jedis.JedisPool;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * Holds a redis connection pool.
+ */
 public class RedisConnector {
 
     private final JedisPool jedisPool = new JedisPool();

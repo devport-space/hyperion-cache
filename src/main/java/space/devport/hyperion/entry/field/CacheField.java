@@ -2,7 +2,9 @@ package space.devport.hyperion.entry.field;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
+import space.devport.hyperion.HyperionCache;
 import space.devport.hyperion.RedisConnector;
+import space.devport.hyperion.entry.CacheHandle;
 
 import java.util.List;
 
@@ -10,35 +12,47 @@ public abstract class CacheField<T> {
 
     protected final RedisConnector connector;
 
-    private final String key;
+    protected final CacheHandle<?> handle;
     protected final String fieldName;
 
-    public CacheField(RedisConnector connector, String key, String fieldName) {
+    public CacheField(RedisConnector connector, CacheHandle<?> handle, String fieldName) {
         this.connector = connector;
-        this.key = key;
+        this.handle = handle;
         this.fieldName = fieldName;
     }
 
+    public abstract T deserialize(String value);
+
+    public abstract String serialize(T value);
+
+    public abstract T getDefaultValue();
+
     protected String getRawProperty() {
         return this.connector.withConnection((jedis) -> {
-            return jedis.hget(this.getKey(), this.fieldName);
+            return jedis.hget(this.handle.getKey(), this.fieldName);
         });
     }
 
     protected void getRawProperty(Transaction transaction) {
-        transaction.hget(this.key, this.fieldName);
+        transaction.hget(this.handle.getKey(), this.fieldName);
     }
 
     protected void setRawProperty(String value) {
         this.connector.withConnection((jedis) -> {
-            jedis.hset(this.key, this.fieldName, value);
+            jedis.hset(this.handle.getKey(), this.fieldName, value);
+
+            // add entry for update registry so the CacheHandle object gets saved into DB later.
+            jedis.sadd(String.format(HyperionCache.UPDATES_KEY, this.handle.getRedisCollectionKey()), this.handle.getStringIdentifier());
         });
     }
 
     protected void setRawProperty(Transaction transaction, String value) {
-        transaction.hset(this.key, this.fieldName, value);
+        transaction.hset(this.handle.getKey(), this.fieldName, value);
+        // add entry for update registry so the CacheHandle object gets saved into DB later.
+        transaction.sadd(String.format(HyperionCache.UPDATES_KEY, this.handle.getRedisCollectionKey()), this.handle.getStringIdentifier());
     }
 
+    // get the value deserialized
     public T get() {
         return this.deserialize(getRawProperty());
     }
@@ -47,6 +61,7 @@ public abstract class CacheField<T> {
         this.getRawProperty(t);
     }
 
+    // serialize and set the property
     public void set(T value) {
         this.setRawProperty(this.serialize(value));
     }
@@ -59,22 +74,16 @@ public abstract class CacheField<T> {
         boolean exec(Transaction transaction, T currentValue);
     }
 
-    public abstract T deserialize(String value);
-
-    public abstract String serialize(T value);
-
-    public abstract T getDefaultValue();
-
     public boolean isCached() {
         return this.connector.withConnection((jedis) -> {
-            return jedis.hexists(this.key, this.fieldName);
+            return jedis.hexists(this.handle.getKey(), this.fieldName);
         });
     }
 
     public T watched(CommandExecutor<T> executor) {
         Jedis jedis = this.connector.getConnection();
 
-        jedis.watch(this.key);
+        jedis.watch(this.handle.getKey());
 
         Transaction transaction = jedis.multi();
 
@@ -91,11 +100,7 @@ public abstract class CacheField<T> {
         return this.deserialize((String) results.get(results.size() - 1));
     }
 
-    public String getKey() {
-        return key;
-    }
-
-    public String fieldName() {
+    public String getFieldName() {
         return fieldName;
     }
 }

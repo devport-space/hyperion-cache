@@ -11,8 +11,15 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Main API instance, handles everything.
+ */
 public class HyperionCache {
+
+    public static final String UPDATES_KEY = "hyperion.updates:%s";
 
     private final RedisConnector redisConnector = RedisConnector.create();
 
@@ -20,7 +27,12 @@ public class HyperionCache {
 
     private final Map<Class<?>, EntryFactory<?, ?>> factories = new HashMap<>();
 
+    // TODO: Replace with own notifications through pub/sub to include exact field updates.
+    //  We need that to properly communicate with the other side.
     private final Map<String, Class<? extends CacheHandle<?>>> keyspaces = new HashMap<>();
+
+    // all collection keys accessed
+    private final Map<String, Class<?>> collections = new HashMap<>();
 
     public HyperionCache() {
         //
@@ -47,7 +59,39 @@ public class HyperionCache {
         }
 
         this.keyspaces.put(handle.getRedisCollectionKey(), handleClazz);
+        this.collections.put(handle.getRedisCollectionKey(), handleClazz);
         return handle;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <K, T extends CacheHandle<K>> int saveUpdatedEntries() {
+        // go through collections
+
+        AtomicInteger c = new AtomicInteger(0);
+
+        for (Map.Entry<String, Class<?>> entry : this.collections.entrySet()) {
+            // query updates that happened
+            this.redisConnector.withConnection((jedis) -> {
+                Set<String> updatedIdentifiers = jedis.smembers(String.format(HyperionCache.UPDATES_KEY, entry.getKey()));
+
+                for (String identifier : updatedIdentifiers) {
+                    // get the handle
+                    Class<T> clazz = (Class<T>) entry.getValue();
+
+                    EntryFactory<K, T> factory = getFactory(clazz);
+
+                    K id = factory.parseIdentifier(identifier);
+
+                    CacheHandle<?> handle = createHandle(clazz, id);
+
+                    savePersistentEntry(handle);
+                    c.incrementAndGet();
+
+                    jedis.srem(String.format(HyperionCache.UPDATES_KEY, entry.getKey()), identifier);
+                }
+            });
+        }
+        return c.get();
     }
 
     @SuppressWarnings("unchecked")
@@ -59,7 +103,7 @@ public class HyperionCache {
         provider.save(entry);
     }
 
-    // load an entry from persistent db
+    // load an entry from persistent db to redis cache
     @SuppressWarnings("unchecked")
     public <K, T extends CacheHandle<K>> void loadPersistentEntry(T entry) {
         // get the persistence provider for this class

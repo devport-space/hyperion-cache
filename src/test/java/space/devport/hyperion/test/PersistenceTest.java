@@ -1,24 +1,24 @@
-package space.devport.hyperion.test.demo;
+package space.devport.hyperion.test;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.junit.Assert;
+import org.junit.Test;
 import space.devport.hyperion.HyperionCache;
 import space.devport.hyperion.RedisConnector;
-import space.devport.hyperion.entry.field.CacheField;
 import space.devport.hyperion.factory.EntryFactory;
 import space.devport.hyperion.persistence.PersistenceProvider;
-import space.devport.hyperion.test.demo.models.DemoPlayer;
+import space.devport.hyperion.test.models.DemoPlayer;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class Main {
+public class PersistenceTest {
 
-    public static void main(String[] args) throws SQLException, InterruptedException {
-        System.out.println("Starting demo app.");
-
+    @Test
+    public void demo() throws SQLException, InterruptedException {
         HyperionCache cache = new HyperionCache();
 
         cache.addFactory(DemoPlayer.class, new EntryFactory<>() {
@@ -72,30 +72,23 @@ public class Main {
                     throw new RuntimeException(e);
                 }
             }
-
-            @Override
-            public void saveField(DemoPlayer entry, CacheField<?> field) {
-                try {
-                    PreparedStatement statement = conn.prepareStatement(String.format("INSERT INTO `players` (name, %s) VALUES (?, ?) ON DUPLICATE UPDATE %s = ?;", field.fieldName(), field.fieldName()));
-                    statement.setString(1, entry.getStringIdentifier());
-                    statement.setObject(2, field.get());
-                    statement.setObject(3, field.get());
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-            }
         });
 
         // obtain a handle
         DemoPlayer player = cache.createHandle(DemoPlayer.class, "Wertik1206");
+        player.money().set(100L);
 
-        // todo: own notifications with field and value? field at least
-        //  value could change until the update
-        cache.startKeyspaceNotifications();
-
+        cache.saveUpdatedEntries();
         Thread.sleep(1000L);
 
-        player.money().increment(200L);
-        System.out.println(player.money().get());
+        cache.saveUpdatedEntries();
+        // updated entries should get removed from the internal list
+        // hence nothing saves here
+        Assert.assertEquals(0, cache.saveUpdatedEntries());
+
+        player.money().set(666L);
+        cache.loadPersistentEntry(player);
+
+        Assert.assertEquals(100L, (long) player.money().get());
     }
 }

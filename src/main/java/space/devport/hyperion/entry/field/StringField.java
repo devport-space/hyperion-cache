@@ -1,11 +1,12 @@
 package space.devport.hyperion.entry.field;
 
 import space.devport.hyperion.RedisConnector;
+import space.devport.hyperion.entry.CacheHandle;
 
 public class StringField extends CacheField<String> {
 
-    public StringField(RedisConnector connector, String key, String fieldName) {
-        super(connector, key, fieldName);
+    public StringField(RedisConnector connector, CacheHandle<?> handle, String fieldName) {
+        super(connector, handle, fieldName);
     }
 
     @Override
