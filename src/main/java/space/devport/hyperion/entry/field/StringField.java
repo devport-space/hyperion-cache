@@ -1,12 +1,12 @@
 package space.devport.hyperion.entry.field;
 
 import space.devport.hyperion.RedisConnector;
-import space.devport.hyperion.entry.Entry;
+import space.devport.hyperion.entry.Key;
 
 public class StringField extends Field<String> {
 
-    public StringField(RedisConnector connector, Entry entry, String fieldName) {
-        super(connector, entry, fieldName);
+    public StringField(RedisConnector connector, Key key, String fieldName) {
+        super(connector, key, fieldName);
     }
 
     @Override

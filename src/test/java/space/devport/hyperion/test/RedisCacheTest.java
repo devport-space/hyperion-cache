@@ -2,19 +2,19 @@ package space.devport.hyperion.test;
 
 import org.junit.Assert;
 import org.junit.Test;
-import space.devport.hyperion.HyperionCache;
+import space.devport.hyperion.RedisConnector;
 import space.devport.hyperion.leaderboard.Leaderboard;
 import space.devport.hyperion.test.models.User;
 import space.devport.hyperion.test.models.UserStore;
 
 public class RedisCacheTest {
 
-    private final HyperionCache cache = new HyperionCache();
+    private final RedisConnector connector = RedisConnector.create();
 
     @Test
     public void getset() {
         // create a store that provides entries
-        UserStore userStore = new UserStore(cache);
+        UserStore userStore = new UserStore(connector);
 
         // obtain an entry that's tied to a specific object
         User user = userStore.entry("Wertik1206");
@@ -30,7 +30,7 @@ public class RedisCacheTest {
 
     @Test
     public void leaderboard() {
-        UserStore store = new UserStore(cache);
+        UserStore store = new UserStore(connector);
 
         Leaderboard<User> leaderboard = store.leaderboard("users-money", User::money);
 

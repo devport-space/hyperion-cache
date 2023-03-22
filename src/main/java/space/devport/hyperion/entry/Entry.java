@@ -1,6 +1,5 @@
 package space.devport.hyperion.entry;
 
-import space.devport.hyperion.HyperionCache;
 import space.devport.hyperion.RedisConnector;
 import space.devport.hyperion.entry.field.DoubleField;
 import space.devport.hyperion.entry.field.LongField;
@@ -12,12 +11,13 @@ public abstract class Entry {
 
     private final String identifier;
 
-    public Entry(RedisConnector connector, String identifier) {
-        this.connector = connector;
-        this.identifier = identifier;
-    }
+    private final Key key;
 
-    public abstract String getRedisCollectionName();
+    public Entry(RedisConnector connector, Key key) {
+        this.connector = connector;
+        this.identifier = key.identifier();
+        this.key = key;
+    }
 
     public String getIdentifier() {
         return identifier;
@@ -26,19 +26,19 @@ public abstract class Entry {
     // -- field constr helper methods
 
     public LongField longField(String fieldName) {
-        return new LongField(this.connector, this, fieldName);
+        return new LongField(this.connector, getKey(), fieldName);
     }
 
     public DoubleField doubleField(String fieldName) {
-        return new DoubleField(this.connector, this, fieldName);
+        return new DoubleField(this.connector, getKey(), fieldName);
     }
 
     public StringField stringField(String fieldName) {
-        return new StringField(this.connector, this, fieldName);
+        return new StringField(this.connector, getKey(), fieldName);
     }
 
     // get the whole key of this entry
-    public String getKey() {
-        return String.format(HyperionCache.ENTRY_KEY_FORMAT, getRedisCollectionName(), getIdentifier());
+    public Key getKey() {
+        return this.key;
     }
 }

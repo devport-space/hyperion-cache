@@ -4,20 +4,21 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Transaction;
 import space.devport.hyperion.HyperionCache;
 import space.devport.hyperion.RedisConnector;
-import space.devport.hyperion.entry.Entry;
+import space.devport.hyperion.entry.Key;
 
 import java.util.List;
 
 public abstract class Field<T> {
 
-    protected final Entry entry;
+    private final Key key;
+
     protected final RedisConnector connector;
     protected final String fieldName;
 
-    public Field(RedisConnector connector, Entry entry, String fieldName) {
+    public Field(RedisConnector connector, Key key, String fieldName) {
         this.connector = connector;
         this.fieldName = fieldName;
-        this.entry = entry;
+        this.key = key;
     }
 
     public abstract T deserialize(String value);
@@ -28,27 +29,28 @@ public abstract class Field<T> {
 
     protected String getRawProperty() {
         return this.connector.withConnection((jedis) -> {
-            return jedis.hget(this.entry.getKey(), this.fieldName);
+            return jedis.hget(getKey().compose(), this.fieldName);
         });
     }
 
     protected void getRawProperty(Transaction transaction) {
-        transaction.hget(this.entry.getKey(), this.fieldName);
+        transaction.hget(getKey().compose(), this.fieldName);
     }
 
     protected void setRawProperty(String value) {
         this.connector.withConnection((jedis) -> {
-            jedis.hset(this.entry.getKey(), this.fieldName, value);
+            jedis.hset(getKey().compose(), this.fieldName, value);
 
             // add entry for update registry so the CacheHandle object gets saved into DB later.
-            jedis.sadd(String.format(HyperionCache.UPDATES_KEY_FORMAT, this.entry.getRedisCollectionName()), this.entry.getIdentifier());
+            jedis.sadd(String.format(HyperionCache.UPDATES_KEY_FORMAT, this.key.collection()), this.key.identifier());
         });
     }
 
     protected void setRawProperty(Transaction transaction, String value) {
-        transaction.hset(this.entry.getKey(), this.fieldName, value);
+        transaction.hset(getKey().compose(), this.fieldName, value);
+
         // add entry for update registry so the CacheHandle object gets saved into DB later.
-        transaction.sadd(String.format(HyperionCache.UPDATES_KEY_FORMAT, this.entry.getRedisCollectionName()), this.entry.getIdentifier());
+        transaction.sadd(String.format(HyperionCache.UPDATES_KEY_FORMAT, this.key.collection()), this.key.identifier());
     }
 
     // get the value deserialized
@@ -75,14 +77,14 @@ public abstract class Field<T> {
 
     public boolean isCached() {
         return this.connector.withConnection((jedis) -> {
-            return jedis.hexists(this.entry.getKey(), this.fieldName);
+            return jedis.hexists(getKey().compose(), this.fieldName);
         });
     }
 
     public T watched(CommandExecutor<T> executor) {
         Jedis jedis = this.connector.getConnection();
 
-        jedis.watch(this.entry.getKey());
+        jedis.watch(getKey().compose());
 
         Transaction transaction = jedis.multi();
 
@@ -101,5 +103,9 @@ public abstract class Field<T> {
 
     public String getFieldName() {
         return fieldName;
+    }
+
+    public Key getKey() {
+        return this.key;
     }
 }

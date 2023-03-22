@@ -1,79 +1,69 @@
 package space.devport.hyperion.test;
 
+import org.junit.Assert;
+import org.junit.Test;
+import space.devport.hyperion.RedisConnector;
+import space.devport.hyperion.test.models.User;
+import space.devport.hyperion.test.models.UserStore;
+
 public class PersistenceTest {
 
-    /*@Test
-    public void demo() throws SQLException, InterruptedException {
-        HyperionCache cache = new HyperionCache();
+    private final RedisConnector connector = RedisConnector.create();
 
-        cache.addFactory(User.class, new EntryFactory<>() {
-            @Override
-            public User createEntry(RedisConnector connector, String identifier) {
-                return new User(connector, identifier);
-            }
+    @Test
+    public void basic() {
+        UserStore store = new UserStore(connector);
 
-            @Override
-            public String parseIdentifier(String str) {
-                return str;
-            }
-        });
+        User user = store.entry("Wertik1206");
 
-        // init db
-        HikariConfig config = new HikariConfig();
-        config.setUsername("root");
-        config.setPassword("toor");
-        config.setJdbcUrl("jdbc:mysql://127.0.0.1:3306/hyperion");
-        HikariDataSource ds = new HikariDataSource(config);
+        user.money().set(100D);
 
-        Connection conn = ds.getConnection();
+        // save the user
+        store.save(user);
 
-        cache.addPersistenceProvider(User.class, new PersistenceProvider<>() {
-            @Override
-            public void load(User entry) {
-                try {
-                    PreparedStatement statement = conn.prepareStatement(String.format("SELECT name, money from `players` where `players`.`name`='%s';", entry.getIdentifier()));
-                    ResultSet set = statement.executeQuery();
-                    if (!set.next()) {
-                        System.err.printf("Failed to load player %s from db.\n", entry.getIdentifier());
-                        return;
-                    }
-                    entry.money().set(set.getLong("money"));
-                    System.out.printf("Loaded player %s from db.\n", entry.getIdentifier());
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+        // Wait a bit for the write to db to happen
+        try {
+            Thread.sleep(1000L);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
-            @Override
-            public void save(User entry) {
-                try {
-                    PreparedStatement statement = conn.prepareStatement("INSERT INTO `players` (name, money) VALUES (?, ?) ON DUPLICATE KEY UPDATE money = ?;");
-                    statement.setString(1, entry.getStringIdentifier());
-                    statement.setLong(2, entry.money().get());
-                    statement.setLong(3, entry.money().get());
-                    statement.execute();
-                    System.out.printf("Saved entry %s into persistent DB.\n", entry.getIdentifier());
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
+        // set to random amount
+        user.money().set(666D);
 
-        // obtain a handle
-        User player = cache.createHandle(User.class, "Wertik1206");
-        player.money().set(100L);
+        // load the user
+        // this should overwrite the random value with 100D
+        store.load(user);
 
-        cache.saveUpdatedEntries();
-        Thread.sleep(1000L);
+        Assert.assertEquals(100D, user.money().get(), 0.01);
+    }
 
-        cache.saveUpdatedEntries();
-        // updated entries should get removed from the internal list
-        // hence nothing saves here
-        Assert.assertEquals(0, cache.saveUpdatedEntries());
+    @Test
+    public void saveUpdates() {
+        UserStore store = new UserStore(connector);
 
-        player.money().set(666L);
-        cache.loadPersistentEntry(player);
+        User user = store.entry("Wertik1206");
 
-        Assert.assertEquals(100L, (long) player.money().get());
-    }*/
+        // cause an update
+        user.money().set(100D);
+
+        // this should save the entry into persistent db
+        store.saveUpdatedEntries();
+
+        // Wait a bit for the write to db to happen
+        try {
+            Thread.sleep(1000L);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        // set to random amount
+        user.money().set(666D);
+
+        // load the user
+        // this should overwrite the random value with 100D
+        store.load(user);
+
+        Assert.assertEquals(100D, user.money().get(), 0.01);
+    }
 }
