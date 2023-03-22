@@ -43,7 +43,9 @@ public class Leaderboard<E extends Entry, S extends Store<E>> {
     // a way to load in a bunch of data
 
     public void load(Set<String> identifiers) {
-
+        for (String id : identifiers) {
+            load(id);
+        }
     }
 
     // a way to retrieve a position of a player by identifier

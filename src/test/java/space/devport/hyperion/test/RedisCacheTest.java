@@ -14,19 +14,8 @@ public class RedisCacheTest {
 
     @Test
     public void getset() {
-
-        // if the UserStore implements the Persistent interface
-        // it can be passed here
-        //cache.saveUpdatedEntries(userStore);
-
-        // same goes here
-        //cache.savePersistentEntry(userStore, identifier);
-
-        // and here
-        //cache.loadPersistentEntry(userStore, identifier);
-
-        // create a store that provides entries and models
-        UserStore userStore = new UserStore(cache.getRedisConnector());
+        // create a store that provides entries
+        UserStore userStore = new UserStore(cache);
 
         // obtain an entry that's tied to a specific object
         User user = userStore.entry("Wertik1206");
@@ -42,7 +31,7 @@ public class RedisCacheTest {
 
     @Test
     public void leaderboard() {
-        UserStore store = new UserStore(cache.getRedisConnector());
+        UserStore store = new UserStore(cache);
 
         Leaderboard<User, Store<User>> leaderboard = store.leaderboard("users-money", User::money);
 
