@@ -2,6 +2,7 @@ package space.devport.hyperion.test;
 
 import org.junit.Assert;
 import org.junit.Test;
+import redis.clients.jedis.resps.Tuple;
 import space.devport.hyperion.HyperionCache;
 import space.devport.hyperion.RedisConnector;
 import space.devport.hyperion.entry.Key;
@@ -9,6 +10,8 @@ import space.devport.hyperion.entry.field.DoubleField;
 import space.devport.hyperion.leaderboard.Leaderboard;
 import space.devport.hyperion.test.models.User;
 import space.devport.hyperion.test.models.UserStore;
+
+import java.util.List;
 
 public class RedisCacheTest {
 
@@ -75,7 +78,7 @@ public class RedisCacheTest {
 
         Leaderboard<User> leaderboard = store.leaderboard("users-money", User::money);
 
-        leaderboard.load("Wertik1206");
+        leaderboard.add("Wertik1206");
 
         String first = leaderboard.at(0);
 
@@ -91,10 +94,67 @@ public class RedisCacheTest {
         store.entry("Wertik1206").money().set(100D);
         store.entry("MoonSoD").money().set(200D);
 
-        leaderboard.load("Wertik1206", "MoonSoD");
+        leaderboard.add("Wertik1206", "MoonSoD");
 
         String first = leaderboard.at(0);
 
         Assert.assertEquals("MoonSoD", first);
+    }
+
+    @Test
+    public void leaderboardEntryAt() {
+        UserStore store = new UserStore(connector);
+
+        Leaderboard<User> leaderboard = store.leaderboard("users-money-multiple", User::money);
+
+        store.entry("Wertik1206").money().set(100D);
+        store.entry("MoonSoD").money().set(200D);
+
+        leaderboard.add("Wertik1206", "MoonSoD");
+
+        User first = leaderboard.entryAt(0);
+
+        Assert.assertEquals("MoonSoD", first.getIdentifier());
+        Assert.assertEquals(200D, first.money().get(), 0.01);
+    }
+
+    @Test
+    public void leaderboardEntryRange() {
+        UserStore store = new UserStore(connector);
+
+        Leaderboard<User> leaderboard = store.leaderboard("users-money-multiple", User::money);
+
+        store.entry("Wertik1206").money().set(100D);
+        store.entry("MoonSoD").money().set(200D);
+
+        leaderboard.add("Wertik1206", "MoonSoD");
+
+        List<User> top = leaderboard.entryRange(0, 1);
+
+        Assert.assertEquals("MoonSoD", top.get(0).getIdentifier());
+        Assert.assertEquals(200D, top.get(0).money().get(), 0.01);
+
+        Assert.assertEquals("Wertik1206", top.get(1).getIdentifier());
+        Assert.assertEquals(100D, top.get(1).money().get(), 0.01);
+    }
+
+    @Test
+    public void leaderboardRange() {
+        UserStore store = new UserStore(connector);
+
+        Leaderboard<User> leaderboard = store.leaderboard("users-money-multiple", User::money);
+
+        store.entry("Wertik1206").money().set(100D);
+        store.entry("MoonSoD").money().set(200D);
+
+        leaderboard.add("Wertik1206", "MoonSoD");
+
+        List<Tuple> top = leaderboard.range(0, 1);
+
+        Assert.assertEquals("MoonSoD", top.get(0).getElement());
+        Assert.assertEquals(200D, top.get(0).getScore(), 0.01);
+
+        Assert.assertEquals("Wertik1206", top.get(1).getElement());
+        Assert.assertEquals(100D, top.get(1).getScore(), 0.01);
     }
 }

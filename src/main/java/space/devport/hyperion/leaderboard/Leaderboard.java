@@ -1,5 +1,6 @@
 package space.devport.hyperion.leaderboard;
 
+import redis.clients.jedis.resps.Tuple;
 import space.devport.hyperion.HyperionCache;
 import space.devport.hyperion.RedisConnector;
 import space.devport.hyperion.entry.Entry;
@@ -9,6 +10,7 @@ import space.devport.hyperion.store.Store;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class Leaderboard<E extends Entry> {
 
@@ -32,7 +34,7 @@ public class Leaderboard<E extends Entry> {
         this.descend = descend;
     }
 
-    public void load(String identifier) {
+    public void add(String identifier) {
         E entry = this.store.entry(identifier);
 
         // fetch the value
@@ -43,17 +45,17 @@ public class Leaderboard<E extends Entry> {
         });
     }
 
-    // a way to load in a bunch of data
+    // a way to add in a bunch of data
 
-    public void load(Collection<String> identifiers) {
+    public void add(Collection<String> identifiers) {
         for (String id : identifiers) {
-            load(id);
+            add(id);
         }
     }
 
-    public void load(String... identifiers) {
+    public void add(String... identifiers) {
         for (String id : identifiers) {
-            load(id);
+            add(id);
         }
     }
 
@@ -62,9 +64,35 @@ public class Leaderboard<E extends Entry> {
         return this.connector.withConnection((jedis) -> (long) jedis.zrank(getKey(), identifier));
     }
 
+    public long positionOf(E entry) {
+        return positionOf(entry.getIdentifier());
+    }
+
+    public List<Tuple> range(int start, int offset) {
+        return this.connector.withConnection((jedis) -> {
+            if (this.descend) {
+                return jedis.zrevrangeWithScores(getKey(), start, start + offset);
+            } else {
+                return jedis.zrangeWithScores(getKey(), start, start + offset);
+            }
+        });
+    }
+
+    // both inclusive
+    public List<E> entryRange(int start, int offset) {
+        List<String> zrange = this.connector.withConnection((jedis) -> {
+            if (this.descend) {
+                return jedis.zrevrange(getKey(), start, start + offset);
+            } else {
+                return jedis.zrange(getKey(), start, start + offset);
+            }
+        });
+
+        return zrange.stream().map(store::createEntry).collect(Collectors.toList());
+    }
+
     public String at(int position) {
         List<String> zrange = this.connector.withConnection((jedis) -> {
-            // do the range in reverse so we get the one with the highest amount on top?
             if (this.descend) {
                 return jedis.zrevrange(getKey(), position, position);
             } else {
@@ -76,7 +104,7 @@ public class Leaderboard<E extends Entry> {
     }
 
     // retrieve an entry
-    public E get(int position) {
+    public E entryAt(int position) {
         String identifier = this.at(position);
         return store.entry(identifier);
     }
